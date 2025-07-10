@@ -34,3 +34,53 @@ $$ In this instance the effect of x1 on Y differs based on the value of x2.
 When creating predictive models, our goal is for our model to predict well for observations the model has never seen before. If we train our model on all of our data, there is a risk of overfitting and the model would not perform well on data it has not seen before.
 
 In order to prevent overfitting, we create a training and test set by randomly splitting the data. Normally the data is split into either 80/20 or 70/30 training / test sets. The training data set is what we use to train the model. After, we can then predict using the test set and use a metric to determine how well our model worked.
+
+## Task 2: Data Prep
+
+### Loading packages and data
+
+First the needed packages
+
+```{r}
+suppressPackageStartupMessages(library(tidyverse))
+suppressPackageStartupMessages(library(tidymodels))
+suppressPackageStartupMessages(library(caret))
+suppressPackageStartupMessages(library(yardstick))
+```
+
+Now let's load in the data. Looks like we will be looking at heart disease (`HeartDisease = 1` for patients with heart disease and `0` for patients who do not) along with different measurements of someone's health. 
+
+```{r}
+heart <- read.csv("heart.csv", header = TRUE)
+heart_data <- as_tibble(heart) #make the data set a tibble
+```
+
+Let's first look at the dataset using the `summary()` function
+
+```{r}
+summary(heart_data)
+```
+
+#### What type of varible (in R) is Heart Disease? Categorical or Quantitative?
+
+The heart disease variable is quantitative in R.
+
+#### Does this make sense? Why or why not?
+
+No it does not make sense that heart disease is quantitative, since it really is not a numeric value. We only want to determine if someone has heart disease or not. It is current stored as an integer, but it is really a binary value, where 1 = success (or patient has heart disease) while 0 = failure (or the patient does not have heart disease). We do not want it to be considered numeric since the mean of the responses does not necessarily make sense when modeling in the same way we would model using say the mean heart rate value. 
+
+### Adjusting the data a bit
+
+We will adjust the `heartdisease` variable to make it binary and format is as a double. This should help with future modeling
+
+We will create a final tibble for this step and call it `new_hear` where the old `heartdisease` variable and also `ST_slope` will be removed. 
+
+```{r}
+new_heart <- heart_data |> 
+  mutate(heart_disease_dbl = as.double(HeartDisease)) |> #make heart disease a double
+  select(-HeartDisease, -ST_Slope) |> #remove original heartdisease and ST_slope
+  relocate(heart_disease_dbl) #move new heart disease variable to front
+  
+new_heart
+```
+
