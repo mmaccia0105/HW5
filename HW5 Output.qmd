@@ -77,10 +77,35 @@ We will create a final tibble for this step and call it `new_hear` where the old
 
 ```{r}
 new_heart <- heart_data |> 
-  mutate(heart_disease_dbl = as.double(HeartDisease)) |> #make heart disease a double
+  mutate(heart_disease = as.double(HeartDisease)) |> #make heart disease a double
   select(-HeartDisease, -ST_Slope) |> #remove original heartdisease and ST_slope
-  relocate(heart_disease_dbl) #move new heart disease variable to front
+  relocate(heart_disease) #move new heart disease variable to front
   
 new_heart
 ```
 
+## Task 3: Exploratory Data Analysis
+
+### Model Age (response variable) as a function of heart disease and their max heart rate.
+
+We are going to first create a scatter plot representing if someone does or does not have heart disease
+
+```{r}
+ggplot(data=new_heart, aes(x = MaxHR, y = Age, color = as.factor(heart_disease))) +
+  #convert heart_disease to a factor to make plotting easier
+  geom_jitter(alpha = 0.5) +
+  geom_smooth(method = "lm", se = FALSE) +
+  scale_color_viridis_d(labels = c("No Heart Disease", "Heart Disease"))+
+  labs(
+    title = "Age vs Maximum Heart Rate by Presence or Absence of Heart Disease",
+    x = "Maximum Heart Rate (bpm)",
+    y = "Age (yr)",
+    color = "Heart Disease"
+  )
+```
+
+### Should we use an interaction or additive model to answer our question?
+
+Based on the plot above, it looks like people with older ages and lower maximum heart rates have more likelihood of having heart disease. It seems like there is a larger amount of people in the > 50 age range with a maximum heart rate of 100 - 125; these people also seem more likely to have heart disease. On the other hand, people who are younger and have higer maximum heart rates seem to have less heart disease.
+
+As a result it seems like this is a situation where an interaction model would be more appropriate. The lines in this graph do not have the same slop and it seems like the effect of age and heart rate can be dependent on each other.
