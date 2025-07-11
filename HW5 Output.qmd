@@ -67,17 +67,18 @@ The heart disease variable is quantitative in R.
 
 #### Does this make sense? Why or why not?
 
-No it does not make sense that heart disease is quantitative, since it really is not a numeric value. We only want to determine if someone has heart disease or not. It is current stored as an integer, but it is really a binary value, where 1 = success (or patient has heart disease) while 0 = failure (or the patient does not have heart disease). We do not want it to be considered numeric since the mean of the responses does not necessarily make sense when modeling in the same way we would model using say the mean heart rate value.
+No it does not make sense that heart disease is quantitative, since it really is not a numeric value. We only want to determine if someone has heart disease or not. It is current stored as an integer, but it is really a binary value, where 1 = success (or patient has heart disease) while 0 = failure (or the patient does not have heart disease). There is not a possibility of the value being 0.25 or something. We do not want it to be considered numeric since the mean of the responses does not necessarily make sense when modeling in the same way we would model using say the mean heart rate value.
 
 ### Adjusting the data a bit
 
-We will adjust the `heartdisease` variable to make it binary and format is as a double. This should help with future modeling
+We will adjust the `heartdisease` variable to make it binary and format is as a factor. This should help with future modeling
 
 We will create a final tibble for this step and call it `new_hear` where the old `heartdisease` variable and also `ST_slope` will be removed.
 
 ```{r}
 new_heart <- heart_data |> 
-  mutate(heart_disease = as.double(HeartDisease)) |> #make heart disease a double
+  mutate(heart_disease = factor(HeartDisease, levels = c(0,1), 
+                                labels = c("No", "Yes"))) |> #make heart disease a factor
   select(-HeartDisease, -ST_Slope) |> #remove original heartdisease and ST_slope
   relocate(heart_disease) #move new heart disease variable to front
   
@@ -91,11 +92,11 @@ new_heart
 We are going to first create a scatter plot representing if someone does or does not have heart disease
 
 ```{r}
-ggplot(data=new_heart, aes(x = MaxHR, y = Age, color = as.factor(heart_disease))) +
+ggplot(data=new_heart, aes(x = MaxHR, y = Age, color = heart_disease)) +
   #convert heart_disease to a factor to make plotting easier
   geom_jitter(alpha = 0.5) +
   geom_smooth(method = "lm", se = FALSE) +
-  scale_color_viridis_d(labels = c("No Heart Disease", "Heart Disease"))+
+  scale_color_viridis_d() +
   labs(
     title = "Age vs Maximum Heart Rate by Presence or Absence of Heart Disease",
     x = "Maximum Heart Rate (bpm)",
@@ -106,7 +107,7 @@ ggplot(data=new_heart, aes(x = MaxHR, y = Age, color = as.factor(heart_disease))
 
 ### Should we use an interaction or additive model to answer our question?
 
-Based on the plot above, it looks like people with older ages and lower maximum heart rates have more likelihood of having heart disease. It seems like there is a larger amount of people in the \> 50 age range with a maximum heart rate of 100 - 125; these people also seem more likely to have heart disease. On the other hand, people who are younger and have higer maximum heart rates seem to have less heart disease.
+Based on the plot above, it looks like people with older ages and lower maximum heart rates have more likelihood of having heart disease. It seems like there is a larger amount of people in the > 50 age range with a maximum heart rate of 100 - 125; these people also seem more likely to have heart disease. On the other hand, people who are younger and have higher maximum heart rates seem to have less heart disease.
 
 As a result it seems like this is a situation where an interaction model would be more appropriate. The lines in this graph do not have the same slop and it seems like the effect of age and heart rate can be dependent on each other.
 
@@ -159,6 +160,7 @@ train_folds <- vfold_cv(train)
 
 ```{r}
 LASSO_recipe <- recipe(Age ~ MaxHR + heart_disease, data = train) |> 
+  step_dummy(heart_disease) |> 
   step_normalize(all_numeric_predictors()) |> 
   step_interact(terms = ~ MaxHR:starts_with("heart_disease")) 
 ```
@@ -228,16 +230,19 @@ The RMSE calculations should be different since we are adding different penalty 
 Below are the results of the RMSE values:
 
 ```{r}
-LASSO_grid |> 
+summary_LASSO <- LASSO_grid |> 
   collect_metrics() |> 
   filter(.metric == "rmse") |> 
   distinct(mean) |> #only output distinct means
   arrange(mean) |> 
   mutate(mean = format(mean, digits = 6)) |> #print at least 6 digits so the difference can be seen
-  print()
+  print() 
+
+min_rmse_LASSO <- min(as.numeric(summary_LASSO$mean))
+max_rmse_LASSO <- max(as.numeric(summary_LASSO$mean))
 ```
 
-As you can see, the RMSE values varied from the different models being evaluated. While there aren't 200 different means, there are 37. You do have to go to at least the hundredths decimal point and beyond to see the difference 
+As you can see, the RMSE values varied from the different models being evaluated.The mean RMSE varies from `r min_rmse_LASSO` to `r max_rmse_LASSO`.
 
 ### 6. Compare the RMSE values between our OLS and LASSO models
 
