@@ -17,7 +17,7 @@ These individual trees are combined into a random forest.
 
 The bagged tree algorithm is a method of using bootstrapping to get multiple samples to fit on the same model. The results of these models would then be averaged together across multiple trees to create the final model. This allows for decreased variance when compared to an individual tree fit model.
 
-Bootstrapping is a method of using resampling of data to create many samples. You would treat each sample as the population and this would then be used to fit the regression tree. The individual sample "y"s are then combined together to create the final model/prediction. In resampling of the data, normally it is done with replacement, so the same observation could be pulled into each individual sample multiple times. 
+Bootstrapping is a method of using resampling of data to create many samples. You would treat each sample as the population and this would then be used to fit the regression tree. The individual sample "y"s are then combined together to create the final model/prediction. In resampling of the data, normally it is done with replacement, so the same observation could be pulled into each individual sample multiple times.
 
 **- What is meant by a general linear model?**
 
@@ -48,7 +48,7 @@ suppressPackageStartupMessages(library(caret))
 suppressPackageStartupMessages(library(yardstick))
 ```
 
-Now let's load in the data. Looks like we will be looking at heart disease (`HeartDisease = 1` for patients with heart disease and `0` for patients who do not) along with different measurements of someone's health. 
+Now let's load in the data. Looks like we will be looking at heart disease (`HeartDisease = 1` for patients with heart disease and `0` for patients who do not) along with different measurements of someone's health.
 
 ```{r}
 heart <- read.csv("heart.csv", header = TRUE)
@@ -67,13 +67,13 @@ The heart disease variable is quantitative in R.
 
 #### Does this make sense? Why or why not?
 
-No it does not make sense that heart disease is quantitative, since it really is not a numeric value. We only want to determine if someone has heart disease or not. It is current stored as an integer, but it is really a binary value, where 1 = success (or patient has heart disease) while 0 = failure (or the patient does not have heart disease). We do not want it to be considered numeric since the mean of the responses does not necessarily make sense when modeling in the same way we would model using say the mean heart rate value. 
+No it does not make sense that heart disease is quantitative, since it really is not a numeric value. We only want to determine if someone has heart disease or not. It is current stored as an integer, but it is really a binary value, where 1 = success (or patient has heart disease) while 0 = failure (or the patient does not have heart disease). We do not want it to be considered numeric since the mean of the responses does not necessarily make sense when modeling in the same way we would model using say the mean heart rate value.
 
 ### Adjusting the data a bit
 
 We will adjust the `heartdisease` variable to make it binary and format is as a double. This should help with future modeling
 
-We will create a final tibble for this step and call it `new_hear` where the old `heartdisease` variable and also `ST_slope` will be removed. 
+We will create a final tibble for this step and call it `new_hear` where the old `heartdisease` variable and also `ST_slope` will be removed.
 
 ```{r}
 new_heart <- heart_data |> 
@@ -106,13 +106,13 @@ ggplot(data=new_heart, aes(x = MaxHR, y = Age, color = as.factor(heart_disease))
 
 ### Should we use an interaction or additive model to answer our question?
 
-Based on the plot above, it looks like people with older ages and lower maximum heart rates have more likelihood of having heart disease. It seems like there is a larger amount of people in the > 50 age range with a maximum heart rate of 100 - 125; these people also seem more likely to have heart disease. On the other hand, people who are younger and have higer maximum heart rates seem to have less heart disease.
+Based on the plot above, it looks like people with older ages and lower maximum heart rates have more likelihood of having heart disease. It seems like there is a larger amount of people in the \> 50 age range with a maximum heart rate of 100 - 125; these people also seem more likely to have heart disease. On the other hand, people who are younger and have higer maximum heart rates seem to have less heart disease.
 
 As a result it seems like this is a situation where an interaction model would be more appropriate. The lines in this graph do not have the same slop and it seems like the effect of age and heart rate can be dependent on each other.
 
 ## Task 4: Testing and Training
 
-Let's split our data into a testing and training set. We will use a 80/20 split. 
+Let's split our data into a testing and training set. We will use a 80/20 split.
 
 ```{r}
 set.seed(101)
@@ -121,3 +121,140 @@ train <- training(heart_split)
 test <- testing(heart_split)
 ```
 
+## Task 5 OLS and LASSO
+
+### 1: Fitting an interaction model with multiple linear regression
+
+```{r}
+ols_mlr <- lm(Age ~ MaxHR * heart_disease, data = train)
+summary(ols_mlr)
+```
+
+### 2: Use Root Mean Square Error (RMSE) to evaluate the model's predictive performance on new data
+
+```{r}
+#create the predictions
+prediction_ols_mlr <- predict(ols_mlr, newdata = test)
+#calculate the root mean square error, use yardstick
+ols_results <- tibble(
+  truth = test$Age,
+  prediction = prediction_ols_mlr
+)
+
+ols_rmse <- rmse(ols_results, truth = truth, estimate = prediction)
+ols_rmse
+```
+
+### 3: Using a LASSO model to see if it has a better predictive performance
+
+In this model with will use cross-validation to select the best tuning parameter. 
+
+#### First let's create 10 fold cross-validation
+
+```{r}
+train_folds <- vfold_cv(train)
+```
+
+#### Creating our LASSO recipe
+
+```{r}
+LASSO_recipe <- recipe(Age ~ MaxHR + heart_disease, data = train) |> 
+  step_normalize(all_numeric_predictors()) |> 
+  step_interact(terms = ~ MaxHR:starts_with("heart_disease")) 
+```
+
+### 4: Setting up our spec, workflow, and grid
+
+Spec:
+
+```{r}
+LASSO_spec <- linear_reg(penalty = tune(), mixture = 1) |> 
+  set_engine("glmnet")
+```
+
+Workflow:
+
+```{r}
+LASSO_wf <- workflow() |> 
+  add_recipe(LASSO_recipe) |> 
+  add_model(LASSO_spec)
+LASSO_wf
+```
+
+Grid:
+
+```{r}
+LASSO_grid <- LASSO_wf |> 
+  tune_grid(resamples = train_folds,
+            grid = grid_regular(penalty(), levels = 200))
+```
+Now collect the metrics:
+
+```{r}
+LASSO_grid |> 
+  collect_metrics() |> 
+  filter(.metric == "rmse")
+```
+
+Pull out the best model:
+
+```{r}
+best_LASSO <- LASSO_grid |> 
+  select_best(metric = "rmse")
+
+best_LASSO
+```
+
+Now will fit that best model on the training set:
+
+First we will make the workflow
+```{r}
+LASSO_wf |> 
+  finalize_workflow(best_LASSO)
+```
+
+Fit the training set
+
+```{r}
+LASSO_final <- LASSO_wf |> 
+  finalize_workflow(best_LASSO) |> 
+  fit(train)
+tidy(LASSO_final)
+```
+### 5: Would we expect RMSE calculations do the best same or different?
+
+The RMSE calculations should be different since we are adding different penalty parameters as we run the model. When I set up my grid, I set `levels = 200`, so that tuned 200 values to the penalty hyperparameter and then we used the CV folds to evaluate the performance of the model. 
+
+Below are the results of the RMSE values:
+
+```{r}
+LASSO_grid |> 
+  collect_metrics() |> 
+  filter(.metric == "rmse") |> 
+  distinct(mean) |> #only output distinct means
+  arrange(mean) |> 
+  mutate(mean = format(mean, digits = 6)) |> #print at least 6 digits so the difference can be seen
+  print()
+```
+
+As you can see, the RMSE values varied from the different models being evaluated. While there aren't 200 different means, there are 37. You do have to go to at least the hundredths decimal point and beyond to see the difference 
+
+### 6. Compare the RMSE values between our OLS and LASSO models
+
+RMSE for the OLS model
+
+```{r}
+ols_rmse #pulling from above
+```
+RMSE for Lasso model
+
+```{r}
+LASSO_final |> 
+  predict(test) |> 
+  pull() |> 
+  rmse_vec(truth = test$Age)
+```
+
+### 7: Why are the RMSE calculations roughtly the same if the coefficients for each model are different?
+
+OLS and LASSO models are similar in the way they predict, but the LASSO model involves an additional tuning parameter. When fitting an OLS model, its goal is find betas that are close to the actual outcomes. LASSO models give a penalty to large coefficients to prevent overfitting and then small coefficients are shrunk to zero. While they may be created in different ways, it seems that OLS and LASSO models may typically have similar RMSE calculations.
