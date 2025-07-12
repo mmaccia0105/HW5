@@ -263,3 +263,136 @@ LASSO_final |>
 ### 7: Why are the RMSE calculations roughtly the same if the coefficients for each model are different?
 
 OLS and LASSO models are similar in the way they predict, but the LASSO model involves an additional tuning parameter. When fitting an OLS model, its goal is find betas that are close to the actual outcomes. LASSO models give a penalty to large coefficients to prevent overfitting and then small coefficients are shrunk to zero. While they may be created in different ways, it seems that OLS and LASSO models may typically have similar RMSE calculations.
+
+## Task 6: Logistic Regression
+
+We will now look at 2 different logistic regression models to predict the presence of heart diease. 
+
+Model 1 will use the predictors of `Age`, `RestingBP`, and `Cholesterol`.
+
+Model 2 will use the predictors of `RestingBP`, `MaxHR`, and `ExerciseAngina` (with an interaction between the latter 2).
+
+We will start with our 2 model recipes:
+
+```{r}
+LR1_recipe <- recipe(heart_disease ~ Age + RestingBP + Cholesterol, data = train) |> 
+  step_normalize(all_predictors()) #since only numeric variables
+
+LR2_recipe <- recipe(heart_disease ~ RestingBP + MaxHR + ExerciseAngina, data = train) |> 
+  step_dummy(ExerciseAngina) |>  #categorical
+  step_normalize(all_numeric_predictors()) |> 
+  step_interact(terms = ~ MaxHR:starts_with("ExerciseAngina")) #adding the interaction
+```
+
+Next we will set up our model and engine:
+
+```{r}
+LR_spec <- logistic_reg() |> 
+  set_engine("glm")
+```
+
+Now make our 2 workflows:
+
+```{r}
+LR1_wf <- workflow() |> 
+  add_recipe(LR1_recipe) |> 
+  add_model(LR_spec)
+
+LR2_wf <- workflow() |> 
+  add_recipe(LR2_recipe) |> 
+  add_model(LR_spec)
+
+LR1_wf
+LR2_wf
+```
+
+Now let's fit to our cross validation folds:
+
+```{r}
+LR1_fit <- LR1_wf |> 
+  fit_resamples(train_folds, metrics = metric_set(accuracy, mn_log_loss))
+                
+LR2_fit <- LR2_wf |> 
+  fit_resamples(train_folds, metrics = metric_set(accuracy, mn_log_loss))
+
+```
+
+Collect the metrics from both models and see which one was best:
+
+```{r}
+rbind(LR1_fit |> collect_metrics(),
+      LR2_fit |> collect_metrics()) |> 
+  mutate(Model = c("Model 1", "Model 1", "Model 2", "Model 2")) |> 
+  select(Model, everything())
+```
+Above we have the accurary and mean log loss of both models. For some comparison, let's check the mean number of subjects with heart disease in the training data.
+
+```{r}
+mean(train$heart_disease == "Yes")
+```
+
+### Identifying the best model:
+
+The best model to predict the presence of heart disease is model 2, with the predictors of `RestingBP`, `MaxHR`, and `ExerciseAngina` (with an interaction between the latter 2). 
+
+Model 2 is the best since it has higher accuracy at 0.748 and lower mean log loss at 0.527 compared to model 1. If we look at the mean of presence of heart disease in the training data set, we find a mean of 0.569. In a model, we want our accuracy to be higher than that, which Model 2 is. Additionally, the lower log loss indicates the model is more reliable in its predictions. 
+
+To provide a summary of the model, we had 3 predictors:
+- Resting Blood Pressure
+- Maximum Heart Rate
+- Exercise Angina (Yes or No presence during exercise)
+
+Plus there was an interaction between maximum heart rate and presence of exercise angina. The model would show that the value of all 3 of these likely affect whether or not a patient has heart disease. Additionally, patients who experience exercise-induced angina, their relationship with their maximum heart rate and the presence of heart disease is probably different than someone who does not experience exercise-induced angina. 
+
+### 2: Using `confusionMatrix()` to check how well the model does on our test data:
+
+First, let's get the confusion Matrix for our training set
+```{r}
+LR_train_fit <- LR2_wf |> 
+  fit(train) 
+conf_mat(train |> mutate(estimate = LR_train_fit |> 
+                          predict(train) |> 
+                          pull()),
+         heart_disease,
+         estimate)
+```
+Taking our best model and testing it on the test set
+
+```{r}
+LR2_wf |> 
+  last_fit(heart_split, metrics = metric_set(accuracy, mn_log_loss)) |> 
+  collect_metrics()
+```
+
+Now here is the confusion matrix for our test set:
+
+```{r}
+test_conf_mat <- conf_mat(test |> mutate(estimate = LR_train_fit |> 
+                          predict(test) |> 
+                          pull()),
+         heart_disease,
+         estimate)
+
+test_conf_mat
+```
+### 3. Sensitivity and Specificity of the Model
+
+```{r}
+Sensitivity <- sensitivity_vec(truth = test$heart_disease, 
+                               estimate = predict(LR_train_fit, test, 
+                                                  type = "class") |> 
+                                 pull())
+Specificity <- specificity_vec(truth = test$heart_disease, 
+                               estimate = predict(LR_train_fit, test, 
+                                                  type = "class") |> 
+                                 pull())
+
+paste("Sensitivity = ", round(Sensitivity,3))
+paste("Specificity = ", round(Specificity,3))
+```
+
+With a sensitivity of 0.777, the model would correctly identify 77.7% of patients who actually have heart disease. 
+
+With a specificity of 0.678, the model would correctly identify 67.8% of patients who do not have heart disease.
+
+In other words, our model is better at detecting people who have heart disease when they actually have it versus confirming they don't have heart disease. This would ideal in the medical world since we want to avoid missing sick patients versus find a false positive. 
