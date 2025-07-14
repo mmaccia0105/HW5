@@ -7,29 +7,29 @@ editor: visual
 
 ## Task 1: Conceptual Questions
 
-**- What is the purpose of using cross-validation when fitting a random forest model?**
+### 1: What is the purpose of using cross-validation when fitting a random forest model?
 
 Cross-validation is used when fitting a random forest model in an effect to prevent overfitting. Since random forest models are ensembles of decision trees, where each decision tree model should be created on different versions of the training set. We still want to only train our model using training data (preventing the model from seeing the test data), so using cross-validation allows us to create multiple folds of the data so each tree can be created on different versions of the training data.
 
 These individual trees are combined into a random forest.
 
-**- Describe the bagged tree algorithm.**
+### 2. Describe the bagged tree algorithm.
 
 The bagged tree algorithm is a method of using bootstrapping to get multiple samples to fit on the same model. The results of these models would then be averaged together across multiple trees to create the final model. This allows for decreased variance when compared to an individual tree fit model.
 
 Bootstrapping is a method of using resampling of data to create many samples. You would treat each sample as the population and this would then be used to fit the regression tree. The individual sample "y"s are then combined together to create the final model/prediction. In resampling of the data, normally it is done with replacement, so the same observation could be pulled into each individual sample multiple times.
 
-**- What is meant by a general linear model?**
+### 3. What is meant by a general linear model?
 
 General linear models (GLM) are a form of modeling in which the response variable could be binary (success or failure, yes/no, etc). The GLM models are considered more flexible since they allow for this flexibility of binary variable. One example of a GLM is logistic regression in which the predicted probabilities of the response variable are a log function and would fall between 0 and 1. When graphing, this takes on a sigmoid shape. Even though the response variable is binary, continuous variables are able to be part of the prediction formula.
 
-**- When fitting a multiple linear regression model, what does adding an interaction term do? That is, what does it allow the model to do differently as compared to when it is not included in the model?**
+### 4. When fitting a multiple linear regression model, what does adding an interaction term do? That is, what does it allow the model to do differently as compared to when it is not included in the model?
 
 Adding an interaction effect allows for a more flexible surface when modeling a multiple linear regression. As opposed to a line of linear regression (plotted as x vs y), a multiple linear regression model would be plotted on more axes (in 3-dimensions). The model would instead be plotted as a "plane" and could take on a flat or saddle-like shape. An example of an interaction could be seen using this equation: $$
 {E}[Y \mid x_1, x_2] = \beta_0 + \beta_1 x_1 + \beta_2 x_2 + \beta_3 (x_1 \cdot x_2)
 $$ In this instance the effect of x1 on Y differs based on the value of x2.
 
-**- Why do we split our data into a training and test set?**
+### 5. Why do we split our data into a training and test set?
 
 When creating predictive models, our goal is for our model to predict well for observations the model has never seen before. If we train our model on all of our data, there is a risk of overfitting and the model would not perform well on data it has not seen before.
 
@@ -55,25 +55,25 @@ heart <- read.csv("heart.csv", header = TRUE)
 heart_data <- as_tibble(heart) #make the data set a tibble
 ```
 
-Let's first look at the dataset using the `summary()` function
+### 1. Reporting `summary()` on the data set
 
 ```{r}
 summary(heart_data)
 ```
 
-#### What type of varible (in R) is Heart Disease? Categorical or Quantitative?
+#### a. What type of varible (in R) is Heart Disease? Categorical or Quantitative?
 
 The heart disease variable is quantitative in R.
 
-#### Does this make sense? Why or why not?
+#### b. Does this make sense? Why or why not?
 
 No it does not make sense that heart disease is quantitative, since it really is not a numeric value. We only want to determine if someone has heart disease or not. It is current stored as an integer, but it is really a binary value, where 1 = success (or patient has heart disease) while 0 = failure (or the patient does not have heart disease). There is not a possibility of the value being 0.25 or something. We do not want it to be considered numeric since the mean of the responses does not necessarily make sense when modeling in the same way we would model using say the mean heart rate value.
 
-### Adjusting the data a bit
+### 2. Adjusting the data a bit
 
-We will adjust the `heartdisease` variable to make it binary and format is as a factor. This should help with future modeling
+We will adjust the `heartdisease` variable to make it binary and format is as a factor. This should help with future modeling.
 
-We will create a final tibble for this step and call it `new_hear` where the old `heartdisease` variable and also `ST_slope` will be removed.
+We will create a final tibble for this step and call it `new_hear` where the old `heartdisease` variable and `ST_slope` variable will be removed.
 
 ```{r}
 new_heart <- heart_data |> 
@@ -87,16 +87,15 @@ new_heart
 
 ## Task 3: Exploratory Data Analysis
 
-### Model Age (response variable) as a function of heart disease and their max heart rate.
+### 1. Model Age (response variable) as a function of heart disease and their max heart rate.
 
 We are going to first create a scatter plot representing if someone does or does not have heart disease
 
 ```{r}
-ggplot(data=new_heart, aes(x = MaxHR, y = Age, color = heart_disease)) +
-  #convert heart_disease to a factor to make plotting easier
-  geom_jitter(alpha = 0.5) +
-  geom_smooth(method = "lm", se = FALSE) +
-  scale_color_viridis_d() +
+ggplot(data=new_heart, aes(x = MaxHR, y = Age, color = heart_disease)) + #age reponse
+  geom_jitter(alpha = 0.5) + #jitter to make points easier to see
+  geom_smooth(method = "lm", se = FALSE) + #fitting a ine
+  scale_color_viridis_d() + #colorblind friendly color
   labs(
     title = "Age vs Maximum Heart Rate by Presence or Absence of Heart Disease",
     x = "Maximum Heart Rate (bpm)",
@@ -105,11 +104,11 @@ ggplot(data=new_heart, aes(x = MaxHR, y = Age, color = heart_disease)) +
   )
 ```
 
-### Should we use an interaction or additive model to answer our question?
+### 2. Should we use an interaction or additive model to answer our question?
 
-Based on the plot above, it looks like people with older ages and lower maximum heart rates have more likelihood of having heart disease. It seems like there is a larger amount of people in the > 50 age range with a maximum heart rate of 100 - 125; these people also seem more likely to have heart disease. On the other hand, people who are younger and have higher maximum heart rates seem to have less heart disease.
+Based on the plot above, it looks like people with older ages and lower maximum heart rates have more likelihood of having heart disease. It seems there is a larger amount of people in the > 50 age range with a maximum heart rate of 100 - 125 bpm; these people also seem more likely to have heart disease. On the other hand, people who are younger and have higher maximum heart rates seem to have less heart disease.
 
-As a result it seems like this is a situation where an interaction model would be more appropriate. The lines in this graph do not have the same slop and it seems like the effect of age and heart rate can be dependent on each other.
+As a result it seems like this is a situation where an interaction model would be more appropriate. The lines in this graph do not have the same slope and it seems like the effect of age and heart rate can be dependent on each other.
 
 ## Task 4: Testing and Training
 
@@ -138,8 +137,8 @@ summary(ols_mlr)
 prediction_ols_mlr <- predict(ols_mlr, newdata = test)
 #calculate the root mean square error, use yardstick
 ols_results <- tibble(
-  truth = test$Age,
-  prediction = prediction_ols_mlr
+  truth = test$Age, #here is the truth values to compare
+  prediction = prediction_ols_mlr #prediction values from above
 )
 
 ols_rmse <- rmse(ols_results, truth = truth, estimate = prediction)
@@ -148,21 +147,23 @@ ols_rmse
 
 ### 3: Using a LASSO model to see if it has a better predictive performance
 
-In this model with will use cross-validation to select the best tuning parameter. 
-
-#### First let's create 10 fold cross-validation
+In this model with will use cross-validation to select the best tuning parameter.
 
 ```{r}
-train_folds <- vfold_cv(train)
+train_folds <- vfold_cv(train) #create our folds, default is 10
 ```
 
 #### Creating our LASSO recipe
 
 ```{r}
-LASSO_recipe <- recipe(Age ~ MaxHR + heart_disease, data = train) |> 
-  step_dummy(heart_disease) |> 
-  step_normalize(all_numeric_predictors()) |> 
-  step_interact(terms = ~ MaxHR:starts_with("heart_disease")) 
+LASSO_recipe <- recipe(Age ~ MaxHR + heart_disease, data = train) |>#lasso formula
+  step_dummy(heart_disease) |> #categorical so make a dummy
+  step_normalize(all_numeric_predictors()) |>  #need to scale all numeric variables
+  step_interact(terms = ~ MaxHR:starts_with("heart_disease"))  #create the interaction 
+                                      #(need starts with based on the dummy variable 
+                                      #creation step)
+
+LASSO_recipe
 ```
 
 ### 4: Setting up our spec, workflow, and grid
@@ -190,6 +191,7 @@ LASSO_grid <- LASSO_wf |>
   tune_grid(resamples = train_folds,
             grid = grid_regular(penalty(), levels = 200))
 ```
+
 Now collect the metrics:
 
 ```{r}
@@ -210,6 +212,7 @@ best_LASSO
 Now will fit that best model on the training set:
 
 First we will make the workflow
+
 ```{r}
 LASSO_wf |> 
   finalize_workflow(best_LASSO)
@@ -223,9 +226,10 @@ LASSO_final <- LASSO_wf |>
   fit(train)
 tidy(LASSO_final)
 ```
+
 ### 5: Would we expect RMSE calculations do the best same or different?
 
-The RMSE calculations should be different since we are adding different penalty parameters as we run the model. When I set up my grid, I set `levels = 200`, so that tuned 200 values to the penalty hyperparameter and then we used the CV folds to evaluate the performance of the model. 
+The RMSE calculations should be different since we are adding different penalty parameters as we run the model. When I set up my grid, I set `levels = 200`, so that tuned 200 values to the penalty hyperparameter and then we used the CV folds to evaluate the performance of the model.
 
 Below are the results of the RMSE values:
 
@@ -235,7 +239,8 @@ summary_LASSO <- LASSO_grid |>
   filter(.metric == "rmse") |> 
   distinct(mean) |> #only output distinct means
   arrange(mean) |> 
-  mutate(mean = format(mean, digits = 6)) |> #print at least 6 digits so the difference can be seen
+  mutate(mean = format(mean, digits = 6)) |> #print at least 6 digits so the difference
+                                            #can be seen
   print() 
 
 min_rmse_LASSO <- min(as.numeric(summary_LASSO$mean))
@@ -251,6 +256,7 @@ RMSE for the OLS model
 ```{r}
 ols_rmse #pulling from above
 ```
+
 RMSE for Lasso model
 
 ```{r}
@@ -259,6 +265,7 @@ LASSO_final |>
   pull() |> 
   rmse_vec(truth = test$Age)
 ```
+Both values are pretty similar 
 
 ### 7: Why are the RMSE calculations roughtly the same if the coefficients for each model are different?
 
@@ -266,7 +273,7 @@ OLS and LASSO models are similar in the way they predict, but the LASSO model in
 
 ## Task 6: Logistic Regression
 
-We will now look at 2 different logistic regression models to predict the presence of heart diease. 
+We will now look at 2 different logistic regression models to predict the presence of heart disease.
 
 Model 1 will use the predictors of `Age`, `RestingBP`, and `Cholesterol`.
 
@@ -276,12 +283,15 @@ We will start with our 2 model recipes:
 
 ```{r}
 LR1_recipe <- recipe(heart_disease ~ Age + RestingBP + Cholesterol, data = train) |> 
-  step_normalize(all_predictors()) #since only numeric variables
+  step_normalize(all_predictors()) #since only numeric predictors 
 
 LR2_recipe <- recipe(heart_disease ~ RestingBP + MaxHR + ExerciseAngina, data = train) |> 
   step_dummy(ExerciseAngina) |>  #categorical
   step_normalize(all_numeric_predictors()) |> 
   step_interact(terms = ~ MaxHR:starts_with("ExerciseAngina")) #adding the interaction
+
+LR1_recipe
+LR2_recipe
 ```
 
 Next we will set up our model and engine:
@@ -310,7 +320,8 @@ Now let's fit to our cross validation folds:
 
 ```{r}
 LR1_fit <- LR1_wf |> 
-  fit_resamples(train_folds, metrics = metric_set(accuracy, mn_log_loss))
+  fit_resamples(train_folds, metrics = metric_set(accuracy, mn_log_loss)) 
+  #choosing these metrics
                 
 LR2_fit <- LR2_wf |> 
   fit_resamples(train_folds, metrics = metric_set(accuracy, mn_log_loss))
@@ -325,7 +336,8 @@ rbind(LR1_fit |> collect_metrics(),
   mutate(Model = c("Model 1", "Model 1", "Model 2", "Model 2")) |> 
   select(Model, everything())
 ```
-Above we have the accurary and mean log loss of both models. For some comparison, let's check the mean number of subjects with heart disease in the training data.
+
+Above we have the accuracy and mean log loss of both models. For some comparison, let's check the mean number of subjects with heart disease in the training data.
 
 ```{r}
 mean(train$heart_disease == "Yes")
@@ -333,20 +345,18 @@ mean(train$heart_disease == "Yes")
 
 ### Identifying the best model:
 
-The best model to predict the presence of heart disease is model 2, with the predictors of `RestingBP`, `MaxHR`, and `ExerciseAngina` (with an interaction between the latter 2). 
+The best model to predict the presence of heart disease is model 2, with the predictors of `RestingBP`, `MaxHR`, and `ExerciseAngina` (with an interaction between the latter 2).
 
-Model 2 is the best since it has higher accuracy at 0.748 and lower mean log loss at 0.527 compared to model 1. If we look at the mean of presence of heart disease in the training data set, we find a mean of 0.569. In a model, we want our accuracy to be higher than that, which Model 2 is. Additionally, the lower log loss indicates the model is more reliable in its predictions. 
+Model 2 is the best since it has higher accuracy at 0.748 and lower mean log loss at 0.527 compared to model 1. If we look at the mean of presence of heart disease in the training data set, we find a mean of 0.569. In a model, we want our accuracy to be higher than that, which Model 2 is. Additionally, the lower log loss indicates the model is more reliable in its predictions.
 
-To provide a summary of the model, we had 3 predictors:
-- Resting Blood Pressure
-- Maximum Heart Rate
-- Exercise Angina (Yes or No presence during exercise)
+To provide a summary of the model, we had 3 predictors: - Resting Blood Pressure - Maximum Heart Rate - Exercise Angina (Yes or No presence during exercise)
 
-Plus there was an interaction between maximum heart rate and presence of exercise angina. The model would show that the value of all 3 of these likely affect whether or not a patient has heart disease. Additionally, patients who experience exercise-induced angina, their relationship with their maximum heart rate and the presence of heart disease is probably different than someone who does not experience exercise-induced angina. 
+Plus there was an interaction between maximum heart rate and presence of exercise angina. The model would show that the value of all 3 of these likely affect whether or not a patient has heart disease. Additionally, patients who experience exercise-induced angina, their relationship with their maximum heart rate and the presence of heart disease is probably different than someone who does not experience exercise-induced angina.
 
 ### 2: Using `confusionMatrix()` to check how well the model does on our test data:
 
 First, let's get the confusion Matrix for our training set
+
 ```{r}
 LR_train_fit <- LR2_wf |> 
   fit(train) 
@@ -356,6 +366,7 @@ conf_mat(train |> mutate(estimate = LR_train_fit |>
          heart_disease,
          estimate)
 ```
+
 Taking our best model and testing it on the test set
 
 ```{r}
@@ -375,6 +386,7 @@ test_conf_mat <- conf_mat(test |> mutate(estimate = LR_train_fit |>
 
 test_conf_mat
 ```
+
 ### 3. Sensitivity and Specificity of the Model
 
 ```{r}
@@ -391,8 +403,8 @@ paste("Sensitivity = ", round(Sensitivity,3))
 paste("Specificity = ", round(Specificity,3))
 ```
 
-With a sensitivity of 0.777, the model would correctly identify 77.7% of patients who actually have heart disease. 
+With a sensitivity of 0.777, the model would correctly identify 77.7% of patients who actually have heart disease.
 
 With a specificity of 0.678, the model would correctly identify 67.8% of patients who do not have heart disease.
 
-In other words, our model is better at detecting people who have heart disease when they actually have it versus confirming they don't have heart disease. This would ideal in the medical world since we want to avoid missing sick patients versus find a false positive. 
+In other words, our model is better at detecting people who have heart disease when they actually have it versus confirming they don't have heart disease. This would ideal in the medical world since we want to avoid missing sick patients versus find a false positive.
