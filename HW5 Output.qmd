@@ -27,7 +27,7 @@ General linear models (GLM) are a form of modeling in which the response variabl
 
 Adding an interaction effect allows for a more flexible surface when modeling a multiple linear regression. As opposed to a line of linear regression (plotted as x vs y), a multiple linear regression model would be plotted on more axes (in 3-dimensions). The model would instead be plotted as a "plane" and could take on a flat or saddle-like shape. An example of an interaction could be seen using this equation: $$
 {E}[Y \mid x_1, x_2] = \beta_0 + \beta_1 x_1 + \beta_2 x_2 + \beta_3 (x_1 \cdot x_2)
-$$ In this instance the effect of x1 on Y differs based on the value of x2.
+$$ In this instance the effect of x\_{1} on Y differs based on the value of x\_{2}.
 
 ### 5. Why do we split our data into a training and test set?
 
@@ -67,7 +67,7 @@ The heart disease variable is quantitative in R.
 
 #### b. Does this make sense? Why or why not?
 
-No it does not make sense that heart disease is quantitative, since it really is not a numeric value. We only want to determine if someone has heart disease or not. It is current stored as an integer, but it is really a binary value, where 1 = success (or patient has heart disease) while 0 = failure (or the patient does not have heart disease). There is not a possibility of the value being 0.25 or something. We do not want it to be considered numeric since the mean of the responses does not necessarily make sense when modeling in the same way we would model using say the mean heart rate value.
+No it does not make sense that heart disease is quantitative, since it really is not a numeric value. We only want to determine if someone has heart disease or not. It is currently stored as an integer, but it is really a binary value, where 1 = success (or patient has heart disease) while 0 = failure (or the patient does not have heart disease). There is not a possibility of the value being 0.25 or something. We do not want it to be considered numeric since the mean of the responses does not necessarily make sense when modeling in the same way we would model using say the mean heart rate value.
 
 ### 2. Adjusting the data a bit
 
@@ -106,7 +106,7 @@ ggplot(data=new_heart, aes(x = MaxHR, y = Age, color = heart_disease)) + #age re
 
 ### 2. Should we use an interaction or additive model to answer our question?
 
-Based on the plot above, it looks like people with older ages and lower maximum heart rates have more likelihood of having heart disease. It seems there is a larger amount of people in the > 50 age range with a maximum heart rate of 100 - 125 bpm; these people also seem more likely to have heart disease. On the other hand, people who are younger and have higher maximum heart rates seem to have less heart disease.
+Based on the plot above, it looks like people with older ages and lower maximum heart rates have more likelihood of having heart disease. It seems there is a larger amount of people in the \> 50 age range with a maximum heart rate of 100 - 125 bpm; these people also seem more likely to have heart disease. On the other hand, people who are younger and have higher maximum heart rates seem to have less heart disease.
 
 As a result it seems like this is a situation where an interaction model would be more appropriate. The lines in this graph do not have the same slope and it seems like the effect of age and heart rate can be dependent on each other.
 
@@ -150,7 +150,7 @@ ols_rmse
 In this model with will use cross-validation to select the best tuning parameter.
 
 ```{r}
-train_folds <- vfold_cv(train) #create our folds, default is 10
+train_folds <- vfold_cv(train,10) #create our folds
 ```
 
 #### Creating our LASSO recipe
@@ -265,7 +265,8 @@ LASSO_final |>
   pull() |> 
   rmse_vec(truth = test$Age)
 ```
-Both values are pretty similar 
+
+Both values are pretty similar
 
 ### 7: Why are the RMSE calculations roughtly the same if the coefficients for each model are different?
 
@@ -349,9 +350,17 @@ The best model to predict the presence of heart disease is model 2, with the pre
 
 Model 2 is the best since it has higher accuracy at 0.748 and lower mean log loss at 0.527 compared to model 1. If we look at the mean of presence of heart disease in the training data set, we find a mean of 0.569. In a model, we want our accuracy to be higher than that, which Model 2 is. Additionally, the lower log loss indicates the model is more reliable in its predictions.
 
-To provide a summary of the model, we had 3 predictors: - Resting Blood Pressure - Maximum Heart Rate - Exercise Angina (Yes or No presence during exercise)
+To provide a summary of the model, we had 3 predictors:
 
-Plus there was an interaction between maximum heart rate and presence of exercise angina. The model would show that the value of all 3 of these likely affect whether or not a patient has heart disease. Additionally, patients who experience exercise-induced angina, their relationship with their maximum heart rate and the presence of heart disease is probably different than someone who does not experience exercise-induced angina.
+-Resting Blood Pressure
+
+-Maximum Heart Rate
+
+-Exercise Angina (Yes or No presence during exercise)
+
+-Interaction between maximum heart rate and presence of exercise angina
+
+The model would show that the value of all 3 of these likely affect whether or not a patient has heart disease. Additionally, patients who experience exercise-induced angina, their relationship with their maximum heart rate and the presence of heart disease is probably different than someone who does not experience exercise-induced angina.
 
 ### 2: Using `confusionMatrix()` to check how well the model does on our test data:
 
