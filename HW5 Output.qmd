@@ -27,7 +27,7 @@ General linear models (GLM) are a form of modeling in which the response variabl
 
 Adding an interaction effect allows for a more flexible surface when modeling a multiple linear regression. As opposed to a line of linear regression (plotted as x vs y), a multiple linear regression model would be plotted on more axes (in 3-dimensions). The model would instead be plotted as a "plane" and could take on a flat or saddle-like shape. An example of an interaction could be seen using this equation: $$
 {E}[Y \mid x_1, x_2] = \beta_0 + \beta_1 x_1 + \beta_2 x_2 + \beta_3 (x_1 \cdot x_2)
-$$ In this instance the effect of x\_{1} on Y differs based on the value of x\_{2}.
+$$ In this instance the effect of x~1~ on Y differs based on the value of x~2~.
 
 ### 5. Why do we split our data into a training and test set?
 
